@@ -5,7 +5,6 @@ try:
 except ImportError:
     import urllib2
 
-
 def get_stop_index():
     route_url = 'http://webservices.nextbus.com/service/publicXMLFeed?command=routeList&a=fairfax'
 
@@ -19,8 +18,6 @@ def get_stop_index():
         route_list.append(grab)
         grab = elem.get('title')
         route_title_list.append(grab)
-
-    print(route_list)
 
     stop_url_base = 'http://webservices.nextbus.com/service/publicXMLFeed?command=routeConfig&a=fairfax&r='
 
@@ -49,18 +46,35 @@ def get_stop_index():
                 column_stop_title.append(stop_title)
                 column_stop_tag.append(stop_tag)
                 column_stop_id.append(stop_id)
-                # print('Added: ' + route_title_list[index_iter] + ', ' + route_id + ', ' + stop_title + ', ' + stop_id)
 
 
         index_iter = index_iter + 1
 
     return column_route_title, column_route_id, column_stop_title, column_stop_tag, column_stop_id
 
-col1, col2, col3, col4, col5 = get_stop_index()
 
-print_iter = 0
+#### delete up from here
 
-for each in col1:
-    print('Column: ' + col1[print_iter] + ', ' + col2[print_iter] + ', ' + col3[print_iter] + ', ' + col4[print_iter] + ', ' + col5[print_iter])
-    print_iter = print_iter + 1
+def get_stop_url_inputs(user_input):
+    column_route_title, column_route_id, column_stop_title, column_stop_tag, column_stop_id = get_stop_index()
 
+    stop_url_iter = 0
+    stop_url_route = ''
+    stop_url_stop = ''
+    function_success = 0
+
+    for tag in column_stop_tag:
+        if column_stop_id[stop_url_iter] == user_input:
+            stop_url_route = column_route_id[stop_url_iter]
+            stop_url_stop = column_stop_tag[stop_url_iter]
+            function_success = 1
+
+        stop_url_iter = stop_url_iter + 1
+    
+    return stop_url_route, stop_url_stop, function_success
+
+stop_url_route, stop_url_stop, function_success = get_stop_url_inputs(input('Code: '))
+
+address = ('http://webservices.nextbus.com/service/publicXMLFeed?command=predictions&a=fairfax&r=' + stop_url_route + '&s=' + stop_url_stop + ' - ', function_success)
+
+print(address)

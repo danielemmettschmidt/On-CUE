@@ -5,7 +5,6 @@ try:
 except ImportError:
     import urllib2
 
-
 def get_stop_index():
     route_url = 'http://webservices.nextbus.com/service/publicXMLFeed?command=routeList&a=fairfax'
 
@@ -19,8 +18,6 @@ def get_stop_index():
         route_list.append(grab)
         grab = elem.get('title')
         route_title_list.append(grab)
-
-    print(route_list)
 
     stop_url_base = 'http://webservices.nextbus.com/service/publicXMLFeed?command=routeConfig&a=fairfax&r='
 
@@ -56,11 +53,53 @@ def get_stop_index():
 
     return column_route_title, column_route_id, column_stop_title, column_stop_tag, column_stop_id
 
-col1, col2, col3, col4, col5 = get_stop_index()
 
-print_iter = 0
 
-for each in col1:
-    print('Column: ' + col1[print_iter] + ', ' + col2[print_iter] + ', ' + col3[print_iter] + ', ' + col4[print_iter] + ', ' + col5[print_iter])
-    print_iter = print_iter + 1
 
+#### break up from here
+
+def get_stop_url_inputs(user_input):
+    column_route_title, column_route_id, column_stop_title, column_stop_tag, column_stop_id = get_stop_index()
+
+    stop_url_iter = 0
+    stop_url_route = ''
+    stop_url_stop = ''
+    function_success = 0
+
+    for tag in column_stop_tag:
+        if column_stop_id[stop_url_iter] == user_input:
+            stop_url_route = column_route_id[stop_url_iter]
+            stop_url_stop = column_stop_tag[stop_url_iter]
+            function_success = 1
+
+        stop_url_iter = stop_url_iter + 1
+    
+    return stop_url_route, stop_url_stop, function_success
+
+def get_prediction(user_input):
+    stop_url_route, stop_url_stop, function_success = get_stop_url_inputs(user_input)
+
+    if function_success == 1:
+        address = ('http://webservices.nextbus.com/service/publicXMLFeed?command=predictions&a=fairfax&r=' + stop_url_route + '&s=' + stop_url_stop)
+        #address = ('http://webservices.nextbus.com/service/publicXMLFeed?command=predictions&a=fairfax&r=green2&s=maifsw')
+
+        tree = ET.ElementTree(file=urllib2.urlopen(address))
+
+        for elem in tree.iter(tag='predictions'):
+            message_route_title = elem.get('routeTitle')
+            message_stop_title = elem.get('stopTitle')
+            break
+
+        for elem in tree.iter(tag='prediction'):
+            minutes = elem.get('minutes')
+            message = ('The next ' + message_route_title + ' bus will arrive at ' + message_stop_title + ' in ' + minutes + ' minutes.')
+            break
+    else:
+            message = "Sorry, that code didn't work."
+    
+    return message
+
+user_input = input('Code: ')
+message = get_prediction(user_input)
+
+print(message)
