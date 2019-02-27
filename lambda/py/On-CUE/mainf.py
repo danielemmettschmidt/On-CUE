@@ -14,7 +14,34 @@ class Stop_Index:
         self.column_stop_tag = []
         self.column_stop_id = []
 
-    def get_stop_index(self):
+        self.route_filter_function_success = 0
+        self.street_filter_function_success = 0
+        self.cross_reference_function_success = 0
+
+    def wipe(self):
+        self.column_route_title = []
+        self.column_route_id = []
+        self.column_stop_title = []
+        self.column_stop_title_split = []
+        self.column_stop_tag = []
+        self.column_stop_id = []
+
+    def build(self, source):
+        self.column_route_title = source.column_route_title.copy()
+        self.column_route_id = source.column_route_id.copy()
+        self.column_stop_title = source.column_stop_title.copy()
+        self.column_stop_title_split = source.column_stop_title_split.copy()
+        self.column_stop_tag = source.column_stop_tag.copy()
+        self.column_stop_id = source.column_stop_id.copy()
+
+    def append(self, source, iterator):
+        self.column_route_title.append(source.column_route_title[iterator])
+        self.column_route_id.append(source.column_route_id[iterator])
+        self.column_stop_title.append(source.column_stop_title[iterator])
+        self.column_stop_tag.append(source.column_stop_tag[iterator])
+        self.column_stop_id.append(source.column_stop_id[iterator])
+
+    def pull_stop_index(self):
         route_url = 'http://webservices.nextbus.com/service/publicXMLFeed?command=routeList&a=fairfax'
 
         tree = ET.ElementTree(file=urllib2.urlopen(route_url))
@@ -55,7 +82,6 @@ class Stop_Index:
 
             index_iter = index_iter + 1
 
-
     def split_title(self):
         split_iter = 0
 
@@ -65,49 +91,67 @@ class Stop_Index:
             elif 'and ' in self.column_stop_title[split_iter]:
                 self.column_stop_title_split.append(self.column_stop_title[split_iter].split("and ",1)[1])
             else:
-                self.column_stop_title_split.append('')
+                self.column_stop_title_split.append(' ')
             
             split_iter = split_iter + 1
 
     def filter_index_route(self, user_input_route):
 
-        reference_column_route_title = self.column_route_title.copy()
-        reference_column_route_id = self.column_route_id.copy()
-        reference_column_stop_title = self.column_stop_title.copy()
-        reference_column_stop_tag = self.column_stop_tag.copy()
-        reference_column_stop_id = self.column_stop_id.copy()
+        reference_index = Stop_Index()
+        reference_index.build(self)
+        self.wipe()
+       
+        route_filter_iter = 0
 
-        self.column_route_title = []
-        self.column_route_id = []
-        self.column_stop_title = []
-        self.column_stop_tag = []
-        self.column_stop_id = []
+        for each in reference_index.column_route_title:
+            if reference_index.column_route_title[route_filter_iter].upper() == user_input_route:
+                self.append(reference_index, route_filter_iter)
+                self.route_filter_function_success = 1
 
-        
-
-        filter_iter = 0
-        test_iter = 0
-        filter_function_success = 0
-
-        for route in reference_column_route_title:
-
-            if reference_column_route_title[filter_iter].upper() == user_input_route:
-                #(user_input_route + ' to ' + reference_column_route_title[filter_iter])
-                self.column_route_title.append(reference_column_route_title[filter_iter])
-                self.column_route_id.append(reference_column_route_id[filter_iter])
-                self.column_stop_title.append(reference_column_stop_title[filter_iter])
-                self.column_stop_tag.append(reference_column_stop_tag[filter_iter])
-                self.column_stop_id.append(reference_column_stop_id[filter_iter])
-                test_iter = test_iter + 1
-
-            filter_iter = filter_iter + 1
+            route_filter_iter = route_filter_iter + 1
 
     def filter_index_street(self, user_input_route, user_input_letter):
         self.filter_index_route(user_input_route)
+        
+        reference_index = Stop_Index()
+        reference_index.build(self)
+        
+        self.wipe()
 
-        for split in self.column_stop_title_split:
-            print(split)
-      
+        street_filter_iter = 0
+
+        for street in reference_index.column_stop_title:
+            street = street.upper()
+            letter = street[0]
+
+            if letter == user_input_letter:
+                self.append(reference_index,street_filter_iter)
+                self.street_filter_function_success = 1
+            
+            street_filter_iter = street_filter_iter + 1
+
+    def filter_cross_reference(self, user_input_route, user_input_letter):
+        self.filter_index_route(user_input_route)
+
+        reference_index = Stop_Index()
+        reference_index.build(self)
+
+        reference_index.split_title()
+
+        self.wipe()
+
+        cross_reference_iter = 0
+
+        for cross_reference in reference_index.column_stop_title_split:
+            street = cross_reference.upper()
+            letter = street[0]
+            
+            if letter == user_input_letter:
+                self.append(reference_index, cross_reference_iter)
+                self.cross_reference_function_success = 1
+
+            cross_reference_iter = cross_reference_iter + 1
+                 
     def print_index(self):
         print_iter = 0
 
@@ -123,7 +167,7 @@ class Stop_Index:
 def get_stop_url_inputs(user_input_code):
 
     stop_index = Stop_Index()
-    stop_index.get_stop_index()
+    stop_index.pull_stop_index()
 
     stop_url_iter = 0
     stop_url_route = ''
@@ -162,11 +206,6 @@ def get_prediction(user_input_code):
     
     return message
 
-#user_input_code = input('Code: ')
-#message = get_prediction(user_input_code)
-
-#print(message)
-
 user_input_route = input('Route: ')
 user_input_letter = input('Letter: ')
 
@@ -174,9 +213,21 @@ user_input_route = user_input_route.upper()
 user_input_letter = user_input_letter.upper()
 
 a_filter_index = Stop_Index()
-a_filter_index.get_stop_index()
+a_filter_index.pull_stop_index()
 
-#a_filter_index.print_index()
+a_filter_index.filter_index_street(user_input_route, user_input_letter)
 
-a_filter_index.filter_index_street(user_input_route,user_input_letter)
+print("-- Stops On Street --")
+a_filter_index.print_index()
 
+a_filter_index.wipe()
+a_filter_index.pull_stop_index()
+a_filter_index.filter_cross_reference(user_input_route, user_input_letter)
+
+print("-- Stops On Cross-Streets --")
+a_filter_index.print_index()
+
+user_input_code = input('Code: ')
+message = get_prediction(user_input_code)
+
+print(message)
